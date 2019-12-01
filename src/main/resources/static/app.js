@@ -1,5 +1,3 @@
-var stompClient = null;
-
 function setConnected(connected) {
     $("#connect").prop("disabled", connected);
     $("#disconnect").prop("disabled", !connected);
@@ -12,21 +10,38 @@ function setConnected(connected) {
     $("#greetings").html("");
 }
 
+var socket = null;
+
 function connect() {
-    var socket = new SockJS('/gs-guide-websocket');
-    stompClient = Stomp.over(socket);
-    stompClient.connect({}, function (frame) {
+    socket = new WebSocket('ws://localhost:8080/eliza');
+    socket.onopen = function(e) {
         setConnected(true);
-        console.log('Connected: ' + frame);
-        stompClient.subscribe('/topic/greetings', function (greeting) {
-            showGreeting(greeting.body);
-        });
-    });
+        console.log('connection open');
+    };
+
+    socket.onmessage = function(event) {
+        showGreeting(event.data);
+    };
+
+    socket.onclose = function(event) {
+        setConnected(false);
+        if (event.wasClean) {
+            alert('[close] Connection closed cleanly, code=' + event.code + ' reason=' + event.reason);
+        } else {
+            // e.g. server process killed or network down
+            // event.code is usually 1006 in this case
+            alert('[close] Connection died');
+        }
+    };
+
+    socket.onerror = function(error) {
+        alert('[error]' + error.message);
+    };
 }
 
 function disconnect() {
-    if (stompClient !== null) {
-        stompClient.disconnect();
+    if (socket !== null) {
+        socket.close();
     }
     setConnected(false);
     console.log("Disconnected");
@@ -34,7 +49,7 @@ function disconnect() {
 
 function sendName() {
     messageToSend = $("#name").val();
-    stompClient.send("/app/hello", {}, messageToSend);
+    socket.send(messageToSend);
     $("#greetings").append("<tr><td><b>" + messageToSend + "<b></td></tr>");
 }
 
