@@ -7,7 +7,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-import websockets.web.ElizaServerEndpoint;
+import org.junit.runner.RunWith;
 
 import javax.websocket.*;
 import java.io.IOException;
@@ -21,19 +21,25 @@ import java.util.logging.Logger;
 
 import static java.lang.String.*;
 import static org.junit.Assert.assertEquals;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+
+@RunWith(SpringJUnit4ClassRunner.class)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public class ElizaServerTest {
 
     private static final Logger LOGGER = Grizzly.logger(ElizaServerTest.class);
 
-	private Server server;
+    @Value("${local.server.port}")
+    private int port;
+	private String SERVER_URI;
 
 	@Before
-	public void setup() throws DeploymentException {
-		server = new Server("localhost", 8025, "/websockets",
-            new HashMap<>(), ElizaServerEndpoint.class);
-		server.start();
-	}
+    public void setup() {
+        SERVER_URI = "ws://localhost:" + port + "/eliza";
+    }
 
 	@Test(timeout = 5000)
 	public void onOpen() throws DeploymentException, IOException, URISyntaxException, InterruptedException {
@@ -48,7 +54,7 @@ public class ElizaServerTest {
 				session.addMessageHandler(new ElizaOnOpenMessageHandler(list, latch));
 			}
 
-		}, configuration, new URI("ws://localhost:8025/websockets/eliza"));
+		}, configuration, new URI(SERVER_URI));
         session.getAsyncRemote().sendText("bye");
         latch.await();
 		assertEquals(3, list.size());
@@ -56,22 +62,20 @@ public class ElizaServerTest {
 	}
 
 	@Test(timeout = 1000)
-	@Ignore
 	public void onChat() throws DeploymentException, IOException, URISyntaxException, InterruptedException {
-		// COMPLETE ME!!
+		CountDownLatch latch = new CountDownLatch(5);
 		List<String> list = new ArrayList<>();
 		ClientEndpointConfig configuration = ClientEndpointConfig.Builder.create().build();
 		ClientManager client = ClientManager.createClient();
-		client.connectToServer(new ElizaEndpointToComplete(list), configuration, new URI("ws://localhost:8025/websockets/eliza"));
-		// COMPLETE ME!!
-		// COMPLETE ME!!
-		// COMPLETE ME!!
+		Session session = client.connectToServer(new ElizaEndpointToComplete(list, latch),
+												 configuration,
+												 new URI(SERVER_URI));
+		session.getAsyncRemote().sendText("This statement is false");
+		latch.await();
+		assertEquals(5, list.size());
+		assertEquals("That is quite interesting.", list.get(3));
 	}
 
-	@After
-	public void close() {
-		server.stop();
-	}
 
     private static class ElizaOnOpenMessageHandler implements MessageHandler.Whole<String> {
 
@@ -94,16 +98,15 @@ public class ElizaServerTest {
     private static class ElizaEndpointToComplete extends Endpoint {
 
         private final List<String> list;
+		private final CountDownLatch latch;
 
-        ElizaEndpointToComplete(List<String> list) {
+        ElizaEndpointToComplete(List<String> list, CountDownLatch latch) {
             this.list = list;
+			this.latch = latch;
         }
 
         @Override
         public void onOpen(Session session, EndpointConfig config) {
-
-            // COMPLETE ME!!!
-
             session.addMessageHandler(new ElizaMessageHandlerToComplete());
         }
 
@@ -112,7 +115,7 @@ public class ElizaServerTest {
             @Override
             public void onMessage(String message) {
                 list.add(message);
-                // COMPLETE ME!!!
+                latch.countDown();
             }
         }
     }

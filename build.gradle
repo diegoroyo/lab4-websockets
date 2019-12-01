@@ -1,15 +1,34 @@
-apply plugin: "eclipse"
-apply plugin: "java"
-apply plugin: "idea"
-
-repositories {
-	mavenCentral()
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:2.2.1.RELEASE")
+    }
 }
 
+apply plugin: 'java'
+apply plugin: 'eclipse'
+apply plugin: 'org.springframework.boot'
+apply plugin: 'io.spring.dependency-management'
+
+bootJar {
+    baseName = 'gs-messaging-stomp-websocket'
+    version =  '0.1.0'
+}
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
+repositories {
+    mavenCentral()
+}
+
 dependencies {
 	compile 'org.glassfish.tyrus:tyrus-container-grizzly-server:1.14'
-    testCompile 'junit:junit:4.11'
+    compile("org.springframework.boot:spring-boot-starter-websocket")
+	// https://mvnrepository.com/artifact/org.springframework/spring-messaging
+	compile group: 'org.springframework', name: 'spring-messaging', version: '5.2.1.RELEASE'
+
+    testCompile("org.springframework.boot:spring-boot-starter-test")
+    testCompile 'junit:junit:4.12'
 }
