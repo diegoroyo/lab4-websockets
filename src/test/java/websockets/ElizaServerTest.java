@@ -70,10 +70,10 @@ public class ElizaServerTest {
 		Session session = client.connectToServer(new ElizaEndpointToComplete(list, latch),
 												 configuration,
 												 new URI(SERVER_URI));
-		session.getAsyncRemote().sendText("This statement is false");
+		session.getAsyncRemote().sendText("I think this statement is false");
 		latch.await();
 		assertEquals(5, list.size());
-		assertEquals("That is quite interesting.", list.get(3));
+		assertEquals("Do you really think so?", list.get(3));
 	}
 
 
