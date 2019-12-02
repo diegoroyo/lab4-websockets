@@ -12,8 +12,17 @@ function setConnected(connected) {
 
 var socket = null;
 
+function url(s) {
+    var l = window.location;
+    return  ((l.protocol === "https:") ? "wss://" : "ws://") +
+            l.hostname +
+            (((l.port != 80) && (l.port != 443)) ? ":" + l.port : "")
+            + l.pathname
+            + s;
+}
+
 function connect() {
-    socket = new WebSocket('ws://localhost:8080/eliza');
+    socket = new WebSocket(url('/eliza'));
     socket.onopen = function(e) {
         setConnected(true);
         console.log('connection open');
